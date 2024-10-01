@@ -2,44 +2,27 @@ import torch
 import torch.nn as nn
 import numpy as np
 from sklearn import datasets
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
-X_numpy, y_numpy = datasets.make_regression(n_samples=100, n_features=1, noise=20, random_state=1)
-X = torch.from_numpy(X_numpy.astype(np.float32))
-y = torch.from_numpy(y_numpy.astype(np.float32))
-y = y.view(y.shape[0],1)
+# 0) prepare data
+bc = datasets.load_breast_cancer()
+X, y = bc.data, bc.target
 
-n_samples, n_features = X.shape
+n_samples, n_feature = X.shape
 
-# 1) model
-input_size = n_features
-output_size = 1
-model = nn.Linear(input_size, output_size)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1234)
 
-# 2) loss & optimizer
-l_r = 0.01
-criterion = nn.MSELoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=l_r)
+#scale
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.fit_transform(X_test)
 
-# 3) training loop
-num_epochs = 100
-for epoch in range(num_epochs):
-    # forward
-    y_predicted = model(X)
-    loss = criterion(y_predicted, y)
+X_train = torch.from_numpy(X_train.astype(np.float32))
+X_test = torch.from_numpy(X_test.astype(np.float32))
+y_train = torch.from_numpy(y_train.astype(np.float32))
+y_test = torch.from_numpy(y_test.astype(np.float32))
 
-    # backward
-    loss.backward()
-
-    # update
-    optimizer.step()
-    optimizer.zero_grad()
-
-    if (epoch+1) % 10 == 0:
-        print(f'epoch: {epoch+1}, loss: {loss.item():.4f}')
-
-# 4) plot
-predicted = model(X).detach().numpy()
-plt.plot(X_numpy, y_numpy, 'ro')
-plt.plot(X_numpy, predicted, 'b')
-plt.show()
+y_train = y_train.view(y_train.shape[0],1)
+y_test = y_test.view(y_test.shape[0],1)
