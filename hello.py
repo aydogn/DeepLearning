@@ -1,48 +1,45 @@
-"""import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision
-import torchvision.transforms as transforms
-import matplotlib.pyplot as plt
-import numpy as np
-
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
-num_epochs =4
-batch_size = 4
-learning_rate = 0.001
-
-
-transform = transform.Compose()
-"""
-
-
 import torch 
+import torch.nn as nn
+import numpy as np
+from sklearn import datasets
+import matplotlib.pyplot as plt
 
-x = torch.tensor([1,2,3,4], dtype = torch.float32)
-y = torch.tensor([2,4,6,8], dtype = torch.float32)
+X_numpy, y_numpy = datasets.make_regression(n_samples=100, n_features=1, noise=20, random_state=1)
+X = torch.from_numpy(X_numpy.astype(np.float32))
+y = torch.from_numpy(y_numpy.astype(np.float32))
+y = y.view(y.shape[0],1)
 
-w = torch.tensor(0.0, requires_grad=True)
+n_samples, n_features = X.shape
 
-def forward(x):
-    return w * x
+# 1) model
+input_size = n_features
+output_size = 1
+model = nn.Linear(input_size, output_size)
 
-def loss(y, y_predicted):
-    return ((y_predicted-y)**2).mean()
-
-n_iter = 100
+# 2) loss & optimizer
 l_r = 0.01
+criterion = nn.MSELoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=l_r)
 
+# 3) training loop
+num_epochs = 100
+for epoch in range(num_epochs):
+    # forward
+    y_predicted = model(X)
+    loss = criterion(y_predicted, y)
 
-for epoch in range(n_iter):
-    y_pred = forward(x)
-    l = loss(y, y_pred)    
-    l.backward()
-    with torch.no_grad():
-        w -= l_r * w.grad
-    w.grad.zero_()
-    if epoch % 2 == 0:
-        print(f'epoch {epoch+1}: w = {w:.3f}, loss = {l:.8f}')
-print(f'prediction after training: f(5) = {forward(5):.3f}')
+    # backward
+    loss.backward()
+
+    # update
+    optimizer.step()
+    optimizer.zero_grad()
+
+    if (epoch+1) % 10 == 0:
+        print(f'epoch: {epoch+1}, loss: {loss.item():.4f}')
+
+# 4) plot
+predicted = model(X).detach().numpy()
+plt.plot(X_numpy, y_numpy, 'ro')
+plt.plot(X_numpy, predicted, 'b')
+plt.show()
